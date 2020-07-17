@@ -4,6 +4,12 @@ import collections
 import numpy as np
 import cv2
 import util
+import argparse
+
+parser = argparse.ArgumentParser(description='video tester')
+parser.add_argument('-v', type=str, default="", help='input video file')
+args = parser.parse_args()
+print(args)
 
 # Constant parameters used in Aruco methods
 ARUCO_DICT = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
@@ -49,7 +55,8 @@ def draw_rod_line(frame, rod_candidates):
 
 def main():
     cv2.namedWindow(WINDOW_TITLE)
-    cap = cv2.VideoCapture('test.mp4')
+    cap = cv2.VideoCapture(args.v)
+    #cap.set(cv2.CAP_PROP_POS_FRAMES, 5000)
 
     prev_markers = []
     paused = False
@@ -65,15 +72,14 @@ def main():
             continue
 
         frame = util.img.resize_image_factor(frame, 0.5)
-        frame = util.img.rotate_image(frame, -90)
+        frame = util.img.rotate_image(frame, 90)
 
-        #
-        # we use aruco markers to detect the edges of the foosball table
-        # we warp the image so that the we only see the playing field
-        #
+
+        #we use aruco markers to detect the edges of the foosball table
+        #we warp the image so that the we only see the playing field
+
         corners, ids, _ = cv2.aruco.detectMarkers(
             frame, ARUCO_DICT, cameraMatrix=MTX, distCoeff=DIST)
-
         tmp = {}
         for i, marker in enumerate(ids):
             tmp[marker[0]] = corners[i]
@@ -87,6 +93,21 @@ def main():
             else:
                 print("missing corners. skipping")
                 continue
+
+        # we can specify static anchor points for the homography transformation if
+        # A) The camera does not move or
+        # B) the table does not move (very unlikely!)
+        #
+        # print(markers)
+        # markers = collections.OrderedDict([
+        #     # bottom right
+        #     (2, np.array([[[1310, 1000]]], dtype=np.float)),
+        #     # bottom left
+        #     (3, np.array([[[480.,  1000]]], dtype=np.float)),
+        #     # top left
+        #     (4, np.array([[[650., 130.]]], dtype=np.float)),
+        #     # top right
+        #     (5, np.array([[[1280., 130.]]], dtype=np.float))])
 
         frame = util.img.warp_image(frame, markers)
 
@@ -149,9 +170,11 @@ def main():
                 pts = util.bambachlee.find_peaks(
                     hsv, black, candidate, sigma=20, threshold=0.5)
             else:
-                pts = util.bambachlee.find_peaks(hsv, green, candidate, threshold=0.7)
+                pts = util.bambachlee.find_peaks(
+                    hsv, green, candidate, threshold=0.7)
             for p in pts:
-                cv2.line(frame, (p, candidate[0]), (p, candidate[1]), (255, 0, 0), 5)
+                cv2.line(frame, (p, candidate[0]),
+                         (p, candidate[1]), (255, 0, 0), 5)
 
         draw_rod_line(frame, rod_candidates)
 

@@ -34,7 +34,7 @@ def warp_image(img, markers):
     minY = float('inf')
     # order is important
 
-    for mId, corner in markers.items():
+    for _, corner in markers.items():
         src_points = np.append(src_points, corner[0][0])
 
     src_points = src_points.reshape(4, 1, -1)
